@@ -588,7 +588,18 @@ def scene_recon_pipeline_online(i2p_model:Image2PointsModel,
             if conf < 10:
                 fail_view[current_frame_id] = conf.item()
             print(f"finish recover pcd of frame {current_frame_id}, with a mean confidence of {conf:.2f}.")
-            
+            # live viewer: periodic PLY save
+            _live_every = int(__import__('os').environ.get('SLAM3R_LIVE_SAVE_EVERY', '30'))
+            if current_frame_id > 0 and current_frame_id % _live_every == 0:
+                try:
+                    save_recon(input_views, num_frame_read, save_dir, scene_id,
+                               False, rgb_imgs,
+                               registered_confs=per_frame_res['l2w_confs'],
+                               num_points_save=min(500000, num_points_save),
+                               conf_thres_res=conf_thres_l2w)
+                except Exception:
+                    pass
+
     print(f"finish reconstructing {num_frame_read} frames")
     print(f'mean confidence for whole scene reconstruction: {torch.tensor(registered_confs_mean).mean().item():.2f}')
     print(f"{len(fail_view)} views with low confidence: ", {key:round(fail_view[key],2) for key in fail_view.keys()})
